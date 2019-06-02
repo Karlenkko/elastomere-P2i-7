@@ -4,7 +4,8 @@ global sigma epsilon k0 Natome m dt Niter kB
 %% initialisation des positions
 P=zeros(Natome+1,3,Niter+1);    % positions des particules
 P(:,:,1)=Pini;
-
+PosG=zeros(Niter+1,3);
+PosG(1,:)=centerDeMasse(Pini);
 sigma1 = zeros (Niter,1) ; 
 %% calcul de vitesse aleatoire
 v=(3*kB*T/m)^0.5;
@@ -54,16 +55,23 @@ for i=1:Niter
     sigma1(i,1)=sqrt(sum(forcetot(P(Natome,:,i),P(Natome+1,:,i),P(:,:,i),Natome+1).^2,2));
     
 %     video
+    PosG(i+1,:)=centerDeMasse([zeros(1,3);P(:,:,i)]);
     if(videoflag~=0)
         if(mod(i,100)==0)
             Ptemp=[zeros(1,3);P(:,:,i)];  
+            subplot(1,2,1)
             plot3(Ptemp(:,1),Ptemp(:,2),Ptemp(:,3),'.-r','MarkerSize',25);
+            axis([-10 10 -10 10 -40 60]);
+            grid
 %            view(0,0);
+            subplot(1,2,2)
+            plot3(PosG(i+1,1),PosG(i+1,2),PosG(i+1,3),'.r','MarkerSize',25);
             axis([-10 10 -10 10 -40 60]);
             grid
             drawnow;
         end
     end
+    
 end
 Def=zeros(Niter,1);
 if(sum(ftrac.^2)~=0)
@@ -74,6 +82,7 @@ if(sum(ftrac.^2)~=0)
     end
 end
 defmoy=mean(Def);
+posgmoy=mean(PosG,1)
 if(sum(ftrac.^2)~=0)    
     L1=polyfit(Def,sigma1,1) ;
     Eyoung=L1(1)

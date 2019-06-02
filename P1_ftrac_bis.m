@@ -8,11 +8,11 @@ m = 1 ;	% masse d'un atome en kg
 sigma = 1;  % distance ou le potentiel s'annule en m
 epsilon = 1;    % porfonderur du puit du potentiel
 dt = 0.005;	% pas du temps en s
-Niter = 1e4;	% nombre d'iterations
+Niter = 1e4/2;	% nombre d'iterations
 kB = 1;	% cts de boltzman
-T = 9;	% temperature en K
+T = 1;	% temperature en K
 k0=30;  % raideur 
-ftrac=[0 0 10];	% force de traction en N
+ftrac=[0 0 20];	% force de traction en N
 
 Natome=20;   % nbr d'atome au milieu
 
@@ -40,25 +40,38 @@ V(:,:,1)=Vi;
 % end
 figure(1)
 %% iteration pour tous
+% schema de Verlet avec un pas
+% P(n+1)=P(n)+dt*V(n)+dt^2/2*F(n)
+% V(n+1)=V(n)+dt/2*(F(n+1)+F(n))
 for i=1:Niter
-	for k=2:Natome
+%% calcul de P
+    for k=2:Natome
         fextcurrent=forcetot(P(k+1,:,i),P(k,:,i),P(:,:,i),k)+forcetot(P(k-1,:,i),P(k,:,i),P(:,:,i),k);
         P(k,:,i+1)=P(k,:,i)+dt*V(k,:,i)+dt^2/2*fextcurrent/m;
-%         fextnext=forcetot(P(k+1,:,i+1),P(k,:,i+1),P(:,:,i+1),k)+forcetot(P(k-1,:,i+1),P(k,:,i+1),P(:,:,i+1),k);
-%         V(k,:,i+1)=V(k,:,i)+dt/2*(fextcurrent/m+fextnext/m);
-        V(k,:,i+1)=V(k,:,i)+dt*fextcurrent/m;
+%         V(k,:,i+1)=V(k,:,i)+dt*fextcurrent/m;        
     end
     fext1current=forcetot([0,0,0],P(1,:,i),P(:,:,i),1)+forcetot(P(2,:,i),P(1,:,i),P(:,:,i),1);
     P(1,:,i+1)=P(1,:,i)+dt*V(1,:,i)+dt^2/2*fext1current/m;
-%     fext1next=forcetot([0,0,0],P(1,:,i+1),P(:,:,i+1),1)+forcetot(P(2,:,i+1),P(1,:,i+1),P(:,:,i+1),1);
-%     V(1,:,i+1)=V(1,:,i)+dt/2*(fext1current/m+fext1next/m);
-    V(1,:,i+1)=V(1,:,i)+dt/2*fext1current/m;
+
+%     V(1,:,i+1)=V(1,:,i)+dt/2*fext1current/m;
     
     fextdercurrent=forcetot(P(Natome,:,i),P(Natome+1,:,i),P(:,:,i),Natome+1)+ftrac;
     P(Natome+1,:,i+1)=P(Natome+1,:,i)+dt*V(Natome+1,:,i)+dt^2/2*fextdercurrent/m;
-    V(Natome+1,:,i+1)=V(Natome+1,:,i)+dt*fextdercurrent/m;
+%     V(Natome+1,:,i+1)=V(Natome+1,:,i)+dt*fextdercurrent/m;
 
-
+%% calcul de V
+    for k=2:Natome
+        fextcurrent=forcetot(P(k+1,:,i),P(k,:,i),P(:,:,i),k)+forcetot(P(k-1,:,i),P(k,:,i),P(:,:,i),k);
+        fextnext=forcetot(P(k+1,:,i+1),P(k,:,i+1),P(:,:,i+1),k)+forcetot(P(k-1,:,i+1),P(k,:,i+1),P(:,:,i+1),k);
+        V(k,:,i+1)=V(k,:,i)+dt/2*(fextcurrent/m+fextnext/m);        
+    end
+    fext1next=forcetot([0,0,0],P(1,:,i+1),P(:,:,i+1),1)+forcetot(P(2,:,i+1),P(1,:,i+1),P(:,:,i+1),1);
+    V(1,:,i+1)=V(1,:,i)+dt/2*(fext1current/m+fext1next/m);    
+    
+    fextdernext=forcetot(P(Natome,:,i+1),P(Natome+1,:,i+1),P(:,:,i+1),Natome+1)+ftrac;
+    V(Natome+1,:,i+1)=V(Natome+1,:,i)+dt/2*(fextdercurrent/m+fextdernext/m);
+ 
+%%    
 %     thermosta
     vi=mean(sqrt(sum(V(1:Natome,:,i+1).^2,2)),1);
     Ti=m*vi^2/3/kB;
@@ -68,7 +81,7 @@ for i=1:Niter
     sigma1(i,1)=sqrt(sum(forcetot(P(Natome,:,i),P(Natome+1,:,i),P(:,:,i),Natome+1).^2,2));
     
 %     video
-	if(mod(i,100)==0)
+	if(mod(i,10)==0)
     	Ptemp=[zeros(1,3);P(:,:,i)];  
         plot3(Ptemp(:,1),Ptemp(:,2),Ptemp(:,3),'.-r','MarkerSize',25);
 %         view(0,0);
